@@ -1,4 +1,4 @@
-/*!
+/*
  * @module dnd
  * @copyright 2014 Rick Hutcheson [rick@oddlyaccurate.com]
  * @license GPLv3
@@ -7,12 +7,8 @@
 /*globals exports, require */
 
 
-/*!
- * module dependencies
- */
-
 'use strict';
-var dom = require('./dom');
+var dom = require('dom');
 
 
 /**
@@ -24,8 +20,11 @@ var dom = require('./dom');
 
 /**
  * @doc
- * # API 1 - Transfer API: todo
+ * API 1 - Transfer API
+ * ====================
  */
+
+// TODO: API 1
 
 /**
  * @doc
