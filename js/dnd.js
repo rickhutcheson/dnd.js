@@ -25,6 +25,8 @@ var dom = require('dom');
 
 // TODO: API 1
 // TODO: lookup API for sending files
+// TODO: lookup API for setting drag image/element (addElement vs setDragImage)
+
 //
 // @doc
 //
@@ -64,24 +66,25 @@ var current = {
  *        to this drag source
  * @param {SourceConfig} options - properties of this data source
  *
- * @typedef SourceConfig
- *
- * @optproperty {String | Object}[] data - An array of whose elements specify 
- *              the type and value of  the data to transfer. 
- *              Elements may be: 
- *              1.   a pair `{type, value}`, where `type` is a string specifying
- *              the type of object to send, and `value` is a string containing
- *              that value. 
- *              2. A string, which is merely a shortcut for the pair
- *              `{type: "text", value: [string contents]}.
- *
- *
- * @optproperty {String | String[]} effects - One or more of the strings
+ * @typedef SourceConfig {  
+ *   [data] : {String | Object}[] An array of whose elements specify 
+ *            the type and value of  the data to transfer. Elements may be: 
+ *            1. a pair `{type, value}`, where `type` is a string specifying
+ *               the type of object to send, and `value` is a string containing
+ *               that value. 
+ *            2. a string, which is merely a shortcut for the pair
+ *               `{type: "text", value: [string contents]}.
+ * 
+ *   [effects]: {String | String[]} effects - One or more of the strings
  *              `"move"`, `"copy"`, and `"link"`.
  *
- * @optproperty {Element} view - The `Element` to use as the
- *              "drag image". If no view is specified, the browser's
- *              default view (a copy of the source element) is used.
+ *   [view]: {Element} The `Element` to use as the
+ *           "drag image". If no view is specified, the browser's
+ *           default view (a copy of the source element) is used. 
+ *   [onStart]: callback for "drag start" event 
+ *   [onCancel]: callback for "drag cancelled" event
+ *   [onDrop]: callback for "drop" event
+ * }
  */
 exports.createSource = function(src, options) {
   checkOptions(options);
@@ -90,15 +93,14 @@ exports.createSource = function(src, options) {
     sources: (src instanceof Array ? src : [src]),
     effects: createEffectString(options.effects),
     data: createDataArray(options.data),
-    view: options.view,
+    view: options.view || null,
 
     // client-facing events
     onStart: options.onStart || null,
     onCancel: options.onCancel || null,
     onDrop: options.onDrop || null
   };
-
-  // client events
+  
   makeDraggable(that);
   setupSourceEvents(that);
 
@@ -112,8 +114,6 @@ function createDataArray(data) {
     return (data instanceof Array ? data : [data]);
   }
 }
-
-function checkOptions(options) {}
 
 // HTML-DND requires that drag sources have a `draggable` attribute
 // set to "true". This attribute changes the way that browsers handle
