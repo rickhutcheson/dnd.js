@@ -24,7 +24,7 @@ var dom = require('dom');
  */
 
 // TODO: API 1
-//
+// TODO: lookup API for sending files
 //
 // @doc
 //
@@ -50,7 +50,6 @@ var dom = require('dom');
 // --------------------------
 // You can create an independent source of draggable data with the 
 // `createSource` function.
-
 /*
  * @constructs DataSource
  * @param {Element | Element[]} src - the element or elements to attach
@@ -59,10 +58,15 @@ var dom = require('dom');
  *
  * @typedef SourceConfig
  *
- * @optproperty {String | Object} data - A string with the data to transfer,
- *              or a pair `{type, value}`, where `type` is a string specifying
+ * @optproperty {String | Object}[] data - An array of whose elements specify 
+ *              the type and value of  the data to transfer. 
+ *              Elements may be: 
+ *              1.   a pair `{type, value}`, where `type` is a string specifying
  *              the type of object to send, and `value` is a string containing
- *              that value. TODO: lookup API for sending files
+ *              that value. 
+ *              2. A string, which is merely a shortcut for the pair
+ *              `{type: "text", value: [string contents]}.
+ *
  *
  * @optproperty {String | String[]} effects - One or more of the strings
  *              `"move"`, `"copy"`, and `"link"`.
@@ -77,7 +81,7 @@ exports.createSource = function(src, options) {
   var that = {
     sources: (src instanceof Array ? src : [src]),
     effects: createEffectString(options.effects),
-    data: options.data || false,
+    data: createDataArray(options.data),
     view: options.view,
 
     // client-facing events
@@ -92,6 +96,14 @@ exports.createSource = function(src, options) {
 
   return that;
 };
+
+function createDataArray(data) {
+  if (typeof data === 'undefined') {
+    return [];
+  } else {
+    return (data instanceof Array ? data : [data]);
+  }
+}
 
 function checkOptions(options) {}
 
@@ -115,7 +127,6 @@ function makeDraggable(ds) {
 // has listeners defined because we want clients to be able to
 // attach themselves later or conditionally.
 
-
 function setupSourceEvents(ds) {
   dom.forEach(ds.sources, function(src) {
 
@@ -136,16 +147,18 @@ function setupSourceEvents(ds) {
 // 2. allowed effects - data.effectAllowed = <effect string>
 // 3. dragged view - transfer.setDragImage()
 
-
 function setSourceProperties(ds, transfer) {
   transfer.effectAllowed = ds.effects;
   if (ds.view) {
     transfer.setDragImage(ds.view, (ds.view.x || 0), (ds.view.y || 0));
   }
-  if (ds.data) {
-    var value = ((typeof ds.data) === 'function') ? ds.data() : ds.data
-    transfer.setData('text', value);
-  }
+  ds.data.forEach(function(d) {
+    if ((typeof d) === 'string') {
+      transfer.setData('text', d);
+    } else {
+      transfer.setData(d.type, d.value);
+    }
+  });
 }
 
 
@@ -153,7 +166,6 @@ function setSourceProperties(ds, transfer) {
 // a single string. This string uses camel-case to separate the effects
 // allowed by a data source. Since this is pretty gross, we convert our
 // input (an array of allowed options) to this camel-case string.
-
 
 function createEffectString(effects) {
   if (!effects) {
@@ -172,10 +184,8 @@ function createEffectString(effects) {
   case 3:
     return 'all';
   default:
-    {
-      effects.sort();
-      return effects.reduce(camelCase(effects));
-    }
+    effects.sort();
+    return effects.reduce(camelCase(effects));
   }
 }
 
@@ -203,7 +213,7 @@ exports.createTarget = function(elmts, options) {
 
 function setupTargetEvents(dt) {
   dom.forEach(dt.targets, function(target) {
-    
+
     // fires when a dragged element enters the drop target's boundaries.
     // HTML-DND requires us respond by:
     // - checking whether we're interested in the available data type
@@ -236,14 +246,19 @@ function setupTargetEvents(dt) {
     target.addEventListener('dragover', function(evt) {
       evt.preventDefault();
     });
-    
+
     // This event fires periodically while the dragged element is within
     // the boundaries of the DT.
     // HTML-DND requires us to: cancel **every** `dragover` event sent
     target.addEventListener('drop', function(evt) {
+      var tr = evt.dataTransfer;
       if (dt.onDrop) {
         // todo: customize data types?
-        dt.onDrop(evt.target, evt.dataTransfer.getData('text'));
+        var payload = (tr.types.length === 1) ? tr.getData(tr.types[0]) : {};
+        Array.prototype.forEach.call(tr.types, function(type) {
+          payload[type] = tr.getData(type);
+        });
+        dt.onDrop(evt.target, payload);
       }
     });
   });
@@ -251,5 +266,4 @@ function setupTargetEvents(dt) {
 
 function setTargetProperties(dt, data) {
   data.dropEffect = dt.effect;
-  data.types[data.types.length] = 'text'; // todo: customize?
 }
