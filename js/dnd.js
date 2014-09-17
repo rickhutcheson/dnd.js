@@ -145,13 +145,17 @@ function setupSourceEvents(ds) {
       ds.onStart && ds.onStart(evt.target);
     });
 
+
+    // the onCancel event should only fire if the element has *not*
+    // been dropped anywhere. Since HTML-DND fires it either way, we
+    // manually avoid the event if a drop has occurred
     src.addEventListener('dragend', function(evt) {
-      console.log('dragend');
-      ds.onCancel && ds.onCancel(evt.target);
-      current.source = null;
-      current.element = null;
-    });
-    
+      if (current.source !== null) {
+        ds.onCancel && ds.onCancel(evt.target);
+        current.source = null;
+        current.element = null;
+      }
+    });    
   });
 }
 
