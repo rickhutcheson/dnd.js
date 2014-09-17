@@ -87,7 +87,6 @@ var current = {
  * }
  */
 exports.createSource = function(src, options) {
-  checkOptions(options);
 
   var that = {
     sources: (src instanceof Array ? src : [src]),
