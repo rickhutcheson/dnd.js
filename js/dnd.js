@@ -6,7 +6,6 @@
 
 /*globals exports, require */
 
-
 'use strict';
 var dom = require('dom');
 
@@ -25,32 +24,33 @@ var dom = require('dom');
  */
 
 // TODO: API 1
+//
+//
+// @doc
+//
+// API 2 - Source / Target API
+// ===========================
+//
+// This set of objects provides more control over the data transfer,
+// at the cost of simplicity. In many ways, it is a "renaming"
+// of HTML-DND, with some slight sugar. If you need to use
+// this API, then you might be better off just using HTML-DND.
+//
+//
+// Using this API
+// --------------
+//
+// The S/T api lets you construct `DragSource` and `DragTarget`
+// objects independently, without any formal connection between them.
+// This is useful for situations in which data is being transferred
+// from another location, such as a "file upload" widget.
+//
+//
+// Constructing a Drag Source
+// --------------------------
+// You can create an independent source of draggable data with the 
+// `createSource` function.
 
-/**
- * @doc
- *
- * API 2 - Source / Target API
- * ===========================
- *
- * This set of objects provides more control over the data transfer,
- * at the cost of simplicity. In many ways, it is a "renaming"
- * of HTML-DND, with some slight sugar. If you need to use
- * this API, then you might be better off just using HTML-DND.
- *
- *
- * Using this API
- * --------------
- *
- * The S/T api lets you construct `DragSource` and `DragTarget`
- * objects independently, without any formal connection between them.
- * This is useful for situations in which data is being transferred
- * from another location, such as a "file upload" widget.
- *
- *
- * Constructing a Drag Source
- * --------------------------
- * You can create an independent source of draggable data with the `createSource` function.
- */
 
 /*
  * @constructs DataSource
@@ -175,38 +175,35 @@ function camelCase(first, second) {
   }
 }
 
-
-exports.createTarget = function(attached, options) {
+exports.createTarget = function(elmts, options) {
   var that = {
-    attached:  (attached instanceof Array ? attached : [attached]),
+    targets:  (elmts instanceof Array ? elmts : [elmts]),
     effect: options.effect,
     accepts: options.accepts,
     // client listeners
-    onEnter: undefined,
-    onLeave: undefined,
-    onDrop: undefined
+    onEnter: options.onEnter || null,
+    onLeave: options.onLeave || null,
+    onDrop: options.onDrop || null
   };
-
+  setupTargetEvents(that);
   return that;
 };
 
+function setTargetProperties(dt, data) {
+  data.dropEffect = dt.effect;
+}
+
 function setupTargetEvents (dt) {
   dom.forEach(dt.targets, function(target) {
-
     target.addEventListener('dragenter', function(evt) {
-      setTargetProperties(ds, evt.dataTransfer);
-      if (!dt.onEnter) {
+      if (!dt.onEnter || dt.onEnter(evt.target)) {
         evt.preventDefault()
-      } else {
-        if (dt.onEnter(evt.target)) {
-          evt.preventDefault();
-        }
       }
     });
 
     if (dt.onLeave) {
       target.addEventListener('dragleave', function(evt) {
-        dt.onLeave(target);
+        dt.onLeave(evt.target);
       });
     }
 
