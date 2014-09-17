@@ -77,7 +77,7 @@ exports.createSource = function(src, options) {
   var that = {
     sources: (src instanceof Array ? src : [src]),
     effects: createEffectString(options.effects),
-    data: options.data,
+    data: options.data || false,
     view: options.view,
 
     // client-facing events
@@ -141,6 +141,10 @@ function setSourceProperties(ds, transfer) {
   transfer.effectAllowed = ds.effects;
   if (ds.view) {
     transfer.setDragImage(ds.view, (ds.view.x || 0), (ds.view.y || 0));
+  }
+  if (ds.data) {
+    var value = ((typeof ds.data) === 'function') ? ds.data() : ds.data
+    transfer.setData('text', value);
   }
 }
 
@@ -237,8 +241,9 @@ function setupTargetEvents(dt) {
     // the boundaries of the DT.
     // HTML-DND requires us to: cancel **every** `dragover` event sent
     target.addEventListener('drop', function(evt) {
-      if (dt.onLeave) {
-        dt.onLeave(evt.target, evt.dataTransfer.getData('text'));
+      if (dt.onDrop) {
+        // todo: customize data types?
+        dt.onDrop(evt.target, evt.dataTransfer.getData('text'));
       }
     });
   });
@@ -246,4 +251,5 @@ function setupTargetEvents(dt) {
 
 function setTargetProperties(dt, data) {
   data.dropEffect = dt.effect;
+  data.types[data.types.length] = 'text'; // todo: customize?
 }
