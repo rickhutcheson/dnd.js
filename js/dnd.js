@@ -82,9 +82,9 @@ exports.createSource = function(src, options) {
     view: options.view,
 
     // client-facing events
-    onStart: null,
-    onCancel: null,
-    onDrop: null
+    onStart: options.onStart || null,
+    onCancel: options.onCancel || null,
+    onDrop: options.onDrop || null 
 };
 
   // client events
@@ -125,7 +125,7 @@ function setupSourceEvents (ds) {
     });
 
     src.addEventListener('dragend', function(evt) {
-      ds.onCancel && ds.onCancel();
+      ds.onCancel && ds.onCancel(evt.target);
     });
   });
 }
