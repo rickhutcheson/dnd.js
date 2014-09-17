@@ -50,6 +50,14 @@ var dom = require('dom');
 // --------------------------
 // You can create an independent source of draggable data with the 
 // `createSource` function.
+
+// Bit of a hack; this "global" object tracks the source of our currently-
+// dragged element
+var current = {
+  source: null,
+  element: null
+};
+
 /*
  * @constructs DataSource
  * @param {Element | Element[]} src - the element or elements to attach
@@ -129,15 +137,21 @@ function makeDraggable(ds) {
 
 function setupSourceEvents(ds) {
   dom.forEach(ds.sources, function(src) {
-
     src.addEventListener('dragstart', function(evt) {
+      current.source = ds;
+      current.element = evt.target;
+      
       setSourceProperties(ds, evt.dataTransfer);
       ds.onStart && ds.onStart(evt.target);
     });
 
     src.addEventListener('dragend', function(evt) {
+      console.log('dragend');
       ds.onCancel && ds.onCancel(evt.target);
+      current.source = null;
+      current.element = null;
     });
+    
   });
 }
 
@@ -251,6 +265,7 @@ function setupTargetEvents(dt) {
     // the boundaries of the DT.
     // HTML-DND requires us to: cancel **every** `dragover` event sent
     target.addEventListener('drop', function(evt) {
+      console.log('targetDrop');
       var tr = evt.dataTransfer;
       if (dt.onDrop) {
         // todo: customize data types?
@@ -258,12 +273,17 @@ function setupTargetEvents(dt) {
         Array.prototype.forEach.call(tr.types, function(type) {
           payload[type] = tr.getData(type);
         });
-        dt.onDrop(evt.target, payload);
+        dt.onDrop({ fromElement: current.element, toElement: evt.target, data: payload });
+        
+        if (current.source.onDrop) {
+          current.source.onDrop({ fromElement: current.element, toElement: evt.target, data: payload });
+        }
+        current.source = null;
+        current.element = null;
       }
     });
   });
 }
 
 function setTargetProperties(dt, data) {
-  data.dropEffect = dt.effect;
 }
